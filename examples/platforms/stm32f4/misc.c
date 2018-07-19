@@ -32,37 +32,23 @@
 
 #include <stm32f4xx.h>
 
-#if SOFTDEVICE_PRESENT
-#include "softdevice.h"
-#endif
-
-static uint32_t sResetReason;
-
 bool gPlatformPseudoResetWasRequested;
 
+void stm32f4MiscInit(void)
+{
+    // Intentionally empty.
+}
 
-//void nrf5MiscInit(void)
-//{
-//#if SOFTDEVICE_PRESENT
-//    sd_power_reset_reason_get(&sResetReason);
-//    sd_power_reset_reason_clr(0xFFFFFFFF);
-//#else
-//    sResetReason         = NRF_POWER->RESETREAS;
-//    NRF_POWER->RESETREAS = 0xFFFFFFFF;
-//#endif // SOFTDEVICE_PRESENT
-//}
-//
-//void nrf5MiscDeinit(void)
-//{
-//    // Intentionally empty.
-//}
+void stm32f4MiscDeinit(void)
+{
+    // Intentionally empty.
+}
 
 void otPlatReset(otInstance *aInstance)
 {
     (void)aInstance;
 #if OPENTHREAD_PLATFORM_USE_PSEUDO_RESET
     gPlatformPseudoResetWasRequested = true;
-    sResetReason                     = POWER_RESETREAS_SREQ_Msk;
 #else  // if OPENTHREAD_PLATFORM_USE_PSEUDO_RESET
     NVIC_SystemReset();
 #endif // else OPENTHREAD_PLATFORM_USE_PSEUDO_RESET
@@ -71,36 +57,7 @@ void otPlatReset(otInstance *aInstance)
 otPlatResetReason otPlatGetResetReason(otInstance *aInstance)
 {
     (void)aInstance;
-    otPlatResetReason reason;
-
-//TODO    if (sResetReason & POWER_RESETREAS_RESETPIN_Msk)
-//    {
-//        reason = OT_PLAT_RESET_REASON_EXTERNAL;
-//    }
-//    else if (sResetReason & POWER_RESETREAS_DOG_Msk)
-//    {
-//        reason = OT_PLAT_RESET_REASON_WATCHDOG;
-//    }
-//    else if (sResetReason & POWER_RESETREAS_SREQ_Msk)
-//    {
-//        reason = OT_PLAT_RESET_REASON_SOFTWARE;
-//    }
-//    else if (sResetReason & POWER_RESETREAS_LOCKUP_Msk)
-//    {
-//        reason = OT_PLAT_RESET_REASON_FAULT;
-//    }
-//    else if ((sResetReason & POWER_RESETREAS_OFF_Msk) || (sResetReason & POWER_RESETREAS_LPCOMP_Msk) ||
-//             (sResetReason & POWER_RESETREAS_DIF_Msk) || (sResetReason & POWER_RESETREAS_NFC_Msk) ||
-//             (sResetReason & POWER_RESETREAS_VBUS_Msk))
-//    {
-//        reason = OT_PLAT_RESET_REASON_OTHER;
-//    }
-//    else
-//    {
-        reason = OT_PLAT_RESET_REASON_POWER_ON;
-//    }
-
-    return reason;
+    return OT_PLAT_RESET_REASON_POWER_ON;
 }
 
 void otPlatWakeHost(void)

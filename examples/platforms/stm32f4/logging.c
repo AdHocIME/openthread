@@ -40,6 +40,7 @@
 
 #include <utils/code_utils.h>
 #include <openthread/platform/alarm-milli.h>
+#include <openthread/platform/uart.h>
 #include <openthread/platform/logging.h>
 
 #include <openthread-core-config.h>
@@ -59,15 +60,15 @@
 #define RTT_COLOR_CODE_YELLOW "\x1B[1;33m"
 #define RTT_COLOR_CODE_CYAN "\x1B[1;36m"
 #else // LOG_RTT_COLOR_ENABLE == 1
-#define RTT_COLOR_CODE_DEFAULT ""
-#define RTT_COLOR_CODE_RED ""
-#define RTT_COLOR_CODE_GREEN ""
-#define RTT_COLOR_CODE_YELLOW ""
+#define RTT_COLOR_CODE_DEFAULT "[DEBG]"
+#define RTT_COLOR_CODE_RED "[CRIT]"
+#define RTT_COLOR_CODE_GREEN "[INFO]"
+#define RTT_COLOR_CODE_YELLOW "[WARN]"
 #define RTT_COLOR_CODE_CYAN ""
 #endif // LOG_RTT_COLOR_ENABLE == 1
 
 static bool    sLogInitialized = true;
-static uint8_t sLogBuffer[LOG_RTT_BUFFER_SIZE];
+//static uint8_t sLogBuffer[LOG_RTT_BUFFER_SIZE];
 
 /**
  * Function for getting color of a given level log.
@@ -124,19 +125,13 @@ static inline uint16_t logLevel(char *aLogString, uint16_t aMaxSize, otLogLevel 
     return snprintf(aLogString, aMaxSize, "%s ", levelToString(aLogLevel));
 }
 
-void nrf5LogInit()
+void stm32f4LogInit()
 {
-//    int res = SEGGER_RTT_ConfigUpBuffer(LOG_RTT_BUFFER_INDEX, LOG_RTT_BUFFER_NAME, sLogBuffer, LOG_RTT_BUFFER_SIZE,
-//                                        SEGGER_RTT_MODE_NO_BLOCK_TRIM);
-//    otEXPECT(res >= 0);
-
     sLogInitialized = true;
-
-exit:
     return;
 }
 
-void nrf5LogDeinit()
+void stm32f4LogDeinit()
 {
     sLogInitialized = false;
 }
@@ -170,15 +165,12 @@ OT_TOOL_WEAK void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const 
         length = LOG_PARSE_BUFFER_SIZE;
     }
 
-    logString[length++] = '\n';
-    logString[length++] = 0;
+    length+=snprintf(&logString[length], LOG_PARSE_BUFFER_SIZE - length, "%s \r\n", levelToString(OT_LOG_LEVEL_DEBG));
+    logString[length] = 0;
 
     va_end(paramList);
 
-    // Write user log to the RTT memory block.
-//    SEGGER_RTT_WriteNoLock(0, logString, length);
-//    otPlatUartSend(logString, length);
-
+    otPlatUartSend((uint8_t*)logString, length);
 exit:
     return;
 }

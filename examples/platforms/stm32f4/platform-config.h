@@ -287,7 +287,7 @@
  *
  */
 #ifndef LOG_RTT_COLOR_ENABLE
-#define LOG_RTT_COLOR_ENABLE 0
+#define LOG_RTT_COLOR_ENABLE 1
 #endif
 
 /**
@@ -298,7 +298,7 @@
  *
  */
 #ifndef LOG_PARSE_BUFFER_SIZE
-#define LOG_PARSE_BUFFER_SIZE 128
+#define LOG_PARSE_BUFFER_SIZE 256
 #endif
 
 /**

@@ -59,27 +59,20 @@ void PlatformInit(int argc, char *argv[])
     (void)argc;
     (void)argv;
 
-//#if !SOFTDEVICE_PRESENT
-//    // Enable I-code cache
-//    NRF_NVMC->ICACHECNF = NVMC_ICACHECNF_CACHEEN_Enabled;
-//#endif
-
-//    nrf_drv_clock_init();
-
 #if (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED) || \
     (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_NCP_SPINEL)
-    nrf5LogInit();
+    stm32f4LogInit();
 #endif
-    nrf5AlarmInit();
-    nrf5RandomInit();
+    stm32f4AlarmInit();
+    stm32f4RandomInit();
     if (!gPlatformPseudoResetWasRequested)
     {
-//        nrf5UartInit();
+    	stm32f4UartInit();
     }
 #ifndef SPIS_TRANSPORT_DISABLE
 //    nrf5SpiSlaveInit();
 #endif
-//    nrf5MiscInit();
+    stm32f4MiscInit();
 //    nrf5CryptoInit();
     nrf5RadioInit();
 //    nrf5TempInit();
@@ -92,19 +85,19 @@ void PlatformDeinit(void)
 //    nrf5TempDeinit();
     nrf5RadioDeinit();
 //    nrf5CryptoDeinit();
-//    nrf5MiscDeinit();
+    stm32f4MiscDeinit();
 #ifndef SPIS_TRANSPORT_DISABLE
 //    nrf5SpiSlaveDeinit();
 #endif
     if (!gPlatformPseudoResetWasRequested)
     {
-//        nrf5UartDeinit();
+    	stm32f4UartDeinit();
     }
-    nrf5RandomDeinit();
-    nrf5AlarmDeinit();
+    stm32f4RandomDeinit();
+    stm32f4AlarmDeinit();
 #if (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED) || \
     (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_NCP_SPINEL)
-//    nrf5LogDeinit();
+    stm32f4LogDeinit();
 #endif
 }
 
@@ -115,9 +108,9 @@ bool PlatformPseudoResetWasRequested(void)
 
 void PlatformProcessDrivers(otInstance *aInstance)
 {
-    nrf5AlarmProcess(aInstance);
+	stm32f4AlarmProcess(aInstance);
     nrf5RadioProcess(aInstance);
-    nrf5UartProcess();
+    stm32f4UartProcess();
 //    nrf5TempProcess();
 #ifndef SPIS_TRANSPORT_DISABLE
 //    nrf5SpiSlaveProcess();

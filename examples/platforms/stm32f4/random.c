@@ -44,10 +44,8 @@
 
 #include "platform-config.h"
 
-#if SOFTDEVICE_PRESENT
-#include "softdevice.h"
-#else
-//#include <hal/nrf_rng.h>
+#include <stm32f4xx.h>
+#include <stm32f4xx_hal_rng.h>
 
 static uint8_t           sBuffer[RNG_BUFFER_SIZE];
 static volatile uint32_t sReadPosition;
@@ -80,7 +78,6 @@ static inline void bufferPut(uint8_t val)
 
 static inline bool bufferIsUint32Ready(void)
 {
-	bufferPut((uint8_t)rand);
     return (bufferCount() >= 4);
 }
 
@@ -92,7 +89,6 @@ static inline uint8_t bufferGet()
     {
         retVal = sBuffer[sReadPosition++ % RNG_BUFFER_SIZE];
     }
-	bufferPut((uint8_t)rand);
 
     return retVal;
 }
@@ -113,80 +109,53 @@ static inline uint32_t bufferGetUint32()
     return retVal;
 }
 
+extern RNG_HandleTypeDef hrng;
+
 static void generatorStart(void)
 {
-//TODO    nrf_rng_event_clear(NRF_RNG_EVENT_VALRDY);
-//    nrf_rng_int_enable(NRF_RNG_INT_VALRDY_MASK);
-//    nrf_rng_task_trigger(NRF_RNG_TASK_START);
+	HAL_RNG_GenerateRandomNumber_IT(&hrng);
 }
 
 static void generatorStop(void)
 {
-//TODO    nrf_rng_int_disable(NRF_RNG_INT_VALRDY_MASK);
-//    nrf_rng_task_trigger(NRF_RNG_TASK_STOP);
 }
 
-void RNG_IRQHandler(void)
+void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng){
+	HAL_RNG_GenerateRandomNumber_IT(hrng);
+}
+
+void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef* hrng, uint32_t random32bit)
 {
-//    if (nrf_rng_event_get(NRF_RNG_EVENT_VALRDY) && nrf_rng_int_get(NRF_RNG_INT_VALRDY_MASK))
-//    {
-//        nrf_rng_event_clear(NRF_RNG_EVENT_VALRDY);
-//
-//        bufferPut(nrf_rng_random_value_get());
-//
-//        if (bufferIsFull())
-//        {
-//            generatorStop();
-//        }
-//    }
-}
-#endif // SOFTDEVICE_PRESENT
+	bufferPut(random32bit);
 
-void nrf5RandomInit(void)
+	if (!bufferIsFull())
+	{
+		HAL_RNG_GenerateRandomNumber_IT(hrng);
+	}
+}
+
+
+void stm32f4RandomInit(void)
 {
     uint32_t seed = 0;
 
-#if SOFTDEVICE_PRESENT
-    uint32_t retval;
-
-    do
-    {
-        // Wait for the first randomized 4 bytes, to randomize software generator seed.
-        retval = sd_rand_application_vector_get((uint8_t *)&seed, sizeof(seed));
-    } while (retval != NRF_SUCCESS && seed == 0);
-
-#else  // SOFTDEVICE_PRESENT
     memset(sBuffer, 0, sizeof(sBuffer));
     sReadPosition  = 0;
     sWritePosition = 0;
 
-//    NVIC_SetPriority(RNG_IRQn, RNG_IRQ_PRIORITY);
-//    NVIC_ClearPendingIRQ(RNG_IRQn);
-//    NVIC_EnableIRQ(RNG_IRQn);
-//
-//    nrf_rng_error_correction_enable();
-//    nrf_rng_shorts_disable(NRF_RNG_SHORT_VALRDY_STOP_MASK);
     generatorStart();
 
     // Wait for the first randomized 4 bytes, to randomize software generator seed.
-    while (!bufferIsUint32Ready())
-        ;
+    while (!bufferIsUint32Ready());
 
     seed = bufferGetUint32();
-#endif // SOFTDEVICE_PRESENT
 
     srand(seed);
 }
 
-void nrf5RandomDeinit(void)
+void stm32f4RandomDeinit(void)
 {
-#ifndef SOFTDEVICE_PRESENT
     generatorStop();
-
-//    NVIC_DisableIRQ(RNG_IRQn);
-//    NVIC_ClearPendingIRQ(RNG_IRQn);
-//    NVIC_SetPriority(RNG_IRQn, 0);
-#endif // SOFTDEVICE_PRESENT
 }
 
 uint32_t otPlatRandomGet(void)
@@ -202,28 +171,15 @@ otError otPlatRandomGetTrue(uint8_t *aOutput, uint16_t aOutputLength)
 
     otEXPECT_ACTION(aOutput && aOutputLength, error = OT_ERROR_INVALID_ARGS);
 
-    while(!bufferIsFull()){
-    	bufferPut((uint8_t)rand);
-    }
     do
     {
-#if SOFTDEVICE_PRESENT
-        sd_rand_application_bytes_available_get(&copyLength);
-#else  // SOFTDEVICE_PRESENT
         copyLength = (uint8_t)bufferCount();
-#endif // SOFTDEVICE_PRESENT
-
         if (copyLength > aOutputLength - index)
         {
             copyLength = aOutputLength - index;
         }
-
         if (copyLength > 0)
         {
-#if SOFTDEVICE_PRESENT
-            uint32_t retval = sd_rand_application_vector_get(aOutput + index, copyLength);
-            otEXPECT_ACTION(retval == NRF_SUCCESS, error = OT_ERROR_FAILED);
-#else  // SOFTDEVICE_PRESENT
 
             for (uint32_t i = 0; i < copyLength; i++)
             {
@@ -231,7 +187,6 @@ otError otPlatRandomGetTrue(uint8_t *aOutput, uint16_t aOutputLength)
             }
 
             generatorStart();
-#endif // SOFTDEVICE_PRESENT
 
             index += copyLength;
         }
