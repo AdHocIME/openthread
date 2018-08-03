@@ -31,7 +31,7 @@ import wpan
 from wpan import verify
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Test description: Child-table and child recovery
+# Test description: Adding addresses with same prefix on multiple nodes.
 #
 
 test_name = __file__[:-3] if __file__.endswith('.py') else __file__
@@ -44,52 +44,94 @@ print 'Starting \'{}\''.format(test_name)
 speedup = 4
 wpan.Node.set_time_speedup_factor(speedup)
 
-NUM_CHILDREN = 7
+r1   = wpan.Node()
+r2   = wpan.Node()
+sed2 = wpan.Node()
 
-router = wpan.Node()
-
-children = []
-for i in range(NUM_CHILDREN):
-    children.append(wpan.Node())
-
-all_nodes = [router] + children
+all_nodes = [r1, r2, sed2]
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Init all nodes
 
-wpan.Node.init_all_nodes()
+wpan.Node.init_all_nodes(disable_logs=False)
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Build network topology
+#
+# Two routers r1 and r2 (sed2 is used for quick promotion of r2 to router status).
 
-router.form('child-table')
-for child in children:
-    child.join_node(router, node_type=wpan.JOIN_TYPE_SLEEPY_END_DEVICE)
-    child.set(wpan.WPAN_POLL_INTERVAL, '1000')
+r1.whitelist_node(r2)
+r2.whitelist_node(r1)
+
+r2.whitelist_node(sed2)
+sed2.whitelist_node(r2)
+
+r1.form("same-prefix")
+
+r2.join_node(r1, wpan.JOIN_TYPE_ROUTER)
+sed2.join_node(r2, wpan.JOIN_TYPE_SLEEPY_END_DEVICE)
+
+sed2.set(wpan.WPAN_POLL_INTERVAL, '500')
+
+r2.status()
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Test implementation
 
-# Get the child table and verify all children are in the table.
+IP6_PREFIX = "fd00:abba::"
 
-child_table = wpan.parse_child_table_result(router.get(wpan.WPAN_THREAD_CHILD_TABLE))
+IP6_ADDR_1  = IP6_PREFIX + "1"
+IP6_ADDR_2  = IP6_PREFIX + "2"
 
-verify(len(child_table) == len(children))
+# Add IP6_ADDR_2 to r2.
 
-for child in children:
-    ext_addr = child.get(wpan.WPAN_EXT_ADDRESS)[1:-1]
-    for entry in child_table:
-        if entry.ext_address == ext_addr:
-            break;
-    else:
-        print 'Failed to find a child entry for extended address {} in table'.format(ext_addr)
-        exit(1)
+r2.add_ip6_address_on_interface(IP6_ADDR_2, prefix_len=64)
 
-    verify(int(entry.rloc16, 16) == int(child.get(wpan.WPAN_THREAD_RLOC16), 16))
-    verify(int(entry.timeout, 0) == 120)
-    verify(entry.is_rx_on_when_idle() == False)
-    verify(entry.is_ffd() == False)
+# Verify (within 5 seconds) that corresponding prefix is seen on both nodes.
 
+def check_prefix():
+    for node in [r1, r2]:
+        prefixes = wpan.parse_on_mesh_prefix_result(node.get(wpan.WPAN_THREAD_ON_MESH_PREFIXES))
+        for p in prefixes:
+            if p.prefix == IP6_PREFIX:
+                if (p.origin == 'ncp' and p.prefix_len == '64' and p.is_stable() and p.is_on_mesh() and p.is_preferred()
+                        and not p.is_def_route() and not p.is_slaac() and not p.is_dhcp() and not p.is_config() and
+                        p.priority == "med"):
+                    break
+        else: # `for` loop finished without finding the prefix.
+            raise wpan.VerifyError('Did not find prefix {} on node {}'.format(IP6_PREFIX, r1))
+
+wpan.verify_within(check_prefix, 5)
+
+# After prefix is seen on r1, add an address with same prefix on r1.
+r1.add_ip6_address_on_interface(IP6_ADDR_1, prefix_len=64)
+
+# Verify that the prefix is still seen on both nodes.
+wpan.verify_within(check_prefix, 5)
+
+# Remove the address from r2 which should remove the corresponding the prefix as well
+# After this since r1 still has the address, the prefix should be present on both nodes.
+r2.remove_ip6_address_on_interface(IP6_ADDR_2, prefix_len=64)
+wpan.verify_within(check_prefix, 5)
+
+# Reset r1 and verify that the prefix is retained correctly (by wpantund).
+r1.reset()
+wpan.verify_within(check_prefix, 8)
+
+# Remove the address on r1. Verify that prefix list is empty.
+r1.remove_ip6_address_on_interface(IP6_ADDR_1, prefix_len=64)
+
+def check_empty_prefix_list():
+    for node in [r1, r2]:
+        prefixes = wpan.parse_on_mesh_prefix_result(node.get(wpan.WPAN_THREAD_ON_MESH_PREFIXES))
+        verify(len(prefixes) == 0)
+
+wpan.verify_within(check_empty_prefix_list, 5)
+
+# Add both addresses back-to-back and check the prefix list to contain the prefix.
+r1.add_ip6_address_on_interface(IP6_ADDR_1, prefix_len=64)
+r2.add_ip6_address_on_interface(IP6_ADDR_2, prefix_len=64)
+wpan.verify_within(check_prefix, 5)
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Test finished

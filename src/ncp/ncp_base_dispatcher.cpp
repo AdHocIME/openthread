@@ -495,6 +495,11 @@ NcpBase::PropertyHandler NcpBase::FindGetPropertyHandler(spinel_prop_key_t aKey)
         handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_NETWORK_TIME>;
         break;
 #endif
+#if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+    case SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT:
+        handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT>;
+        break;
+#endif
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
         // --------------------------------------------------------------------------
@@ -554,6 +559,11 @@ NcpBase::PropertyHandler NcpBase::FindGetPropertyHandler(spinel_prop_key_t aKey)
 #if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
     case SPINEL_PROP_THREAD_STEERING_DATA:
         handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_STEERING_DATA>;
+        break;
+#endif
+#if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+    case SPINEL_PROP_CHILD_SUPERVISION_INTERVAL:
+        handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_CHILD_SUPERVISION_INTERVAL>;
         break;
 #endif
 #if OPENTHREAD_ENABLE_CHANNEL_MANAGER
@@ -703,6 +713,9 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_IPV6_ICMP_PING_OFFLOAD_MODE:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_IPV6_ICMP_PING_OFFLOAD_MODE>;
         break;
+    case SPINEL_PROP_THREAD_CHILD_TIMEOUT:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_CHILD_TIMEOUT>;
+        break;
     case SPINEL_PROP_THREAD_RLOC16_DEBUG_PASSTHRU:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_RLOC16_DEBUG_PASSTHRU>;
         break;
@@ -768,6 +781,11 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_CNTR_RESET:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_CNTR_RESET>;
         break;
+#if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+    case SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT>;
+        break;
+#endif
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
         // --------------------------------------------------------------------------
@@ -776,9 +794,6 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
 #if OPENTHREAD_FTD
     case SPINEL_PROP_NET_PSKC:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_NET_PSKC>;
-        break;
-    case SPINEL_PROP_THREAD_CHILD_TIMEOUT:
-        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_CHILD_TIMEOUT>;
         break;
     case SPINEL_PROP_THREAD_NETWORK_ID_TIMEOUT:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_NETWORK_ID_TIMEOUT>;
@@ -823,12 +838,23 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_THREAD_PENDING_DATASET:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_PENDING_DATASET>;
         break;
-    case SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET:
-        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET>;
+    case SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET>;
         break;
-    case SPINEL_PROP_THREAD_MGMT_PENDING_DATASET:
-        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_PENDING_DATASET>;
+    case SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET>;
         break;
+    case SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET>;
+        break;
+    case SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET>;
+        break;
+#if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+    case SPINEL_PROP_CHILD_SUPERVISION_INTERVAL:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_CHILD_SUPERVISION_INTERVAL>;
+        break;
+#endif
 #if OPENTHREAD_ENABLE_CHANNEL_MANAGER
     case SPINEL_PROP_CHANNEL_MANAGER_NEW_CHANNEL:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_CHANNEL_MANAGER_NEW_CHANNEL>;

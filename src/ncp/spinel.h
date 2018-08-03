@@ -453,6 +453,7 @@ enum
     SPINEL_CAP_CHANNEL_MANAGER         = (SPINEL_CAP_OPENTHREAD__BEGIN + 5),
     SPINEL_CAP_OPENTHREAD_LOG_METADATA = (SPINEL_CAP_OPENTHREAD__BEGIN + 6),
     SPINEL_CAP_TIME_SYNC               = (SPINEL_CAP_OPENTHREAD__BEGIN + 7),
+    SPINEL_CAP_CHILD_SUPERVISION       = (SPINEL_CAP_OPENTHREAD__BEGIN + 8),
     SPINEL_CAP_OPENTHREAD__END         = 640,
 
     SPINEL_CAP_THREAD__BEGIN       = 1024,
@@ -474,6 +475,32 @@ enum
     SPINEL_CAP_EXPERIMENTAL__END   = 2097152,
 };
 
+/**
+ * Property Keys
+ *
+ * The properties are broken up into several sections, each with a
+ * reserved ranges of property identifiers:
+ *
+ *    Name         | Range (Inclusive)              | Description
+ *    -------------|--------------------------------|------------------------
+ *    Core         | 0x000 - 0x01F, 0x1000 - 0x11FF | Spinel core
+ *    PHY          | 0x020 - 0x02F, 0x1200 - 0x12FF | Radio PHY layer
+ *    MAC          | 0x030 - 0x03F, 0x1300 - 0x13FF | MAC layer
+ *    NET          | 0x040 - 0x04F, 0x1400 - 0x14FF | Network
+ *    Thread       | 0x050 - 0x05F, 0x1500 - 0x15FF | Thread
+ *    IPv6         | 0x060 - 0x06F, 0x1600 - 0x16FF | IPv6
+ *    Stream       | 0x070 - 0x07F, 0x1700 - 0x17FF | Stream
+ *    MeshCop      | 0x080 - 0x08F, 0x1800 - 0x18FF | Thread Mesh Commissioning
+ *    OpenThread   |                0x1900 - 0x19FF | OpenThread specific
+ *    Interface    | 0x100 - 0x1FF                  | Interface (e.g., UART)
+ *    PIB          | 0x400 - 0x4FF                  | 802.15.4 PIB
+ *    Counter      | 0x500 - 0x7FF                  | Counters (MAC, IP, etc).
+ *    Nest         |                0x3BC0 - 0x3BFF | Nest (legacy)
+ *    Vendor       |                0x3C00 - 0x3FFF | Vendor specific
+ *    Debug        |                0x4000 - 0x43FF | Debug related
+ *    Experimental |          2,000,000 - 2,097,151 | Experimental use only
+ *
+ */
 typedef enum {
     SPINEL_PROP_LAST_STATUS      = 0,  ///< status [i]
     SPINEL_PROP_PROTOCOL_VERSION = 1,  ///< major, minor [i,i]
@@ -922,6 +949,9 @@ typedef enum {
 
     SPINEL_PROP_NET__END = 0x50,
 
+    SPINEL_PROP_NET_EXT__BEGIN = 0x1400,
+    SPINEL_PROP_NET_EXT__END   = 0x1500,
+
     SPINEL_PROP_THREAD__BEGIN      = 0x50,
     SPINEL_PROP_THREAD_LEADER_ADDR = SPINEL_PROP_THREAD__BEGIN + 0, ///< [6]
 
@@ -1250,7 +1280,7 @@ typedef enum {
      */
     SPINEL_PROP_THREAD_PENDING_DATASET = SPINEL_PROP_THREAD_EXT__BEGIN + 25,
 
-    /// Thread Active Operational Dataset (MGMT send)
+    /// Send MGMT_SET Thread Active Operational Dataset
     /** Format: `A(t(iD))` - Write only
      *
      * The formatting of this property follows the same rules as in SPINEL_PROP_THREAD_ACTIVE_DATASET.
@@ -1265,9 +1295,9 @@ typedef enum {
      *    SPINEL_PROP_DATASET_RAW_TLVS
      *
      */
-    SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET = SPINEL_PROP_THREAD_EXT__BEGIN + 26,
+    SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET = SPINEL_PROP_THREAD_EXT__BEGIN + 26,
 
-    /// Thread Pending Operational Dataset (MGMT send)
+    /// Send MGMT_SET Thread Pending Operational Dataset
     /** Format: `A(t(iD))` - Write only
      *
      * This property is similar to SPINEL_PROP_THREAD_PENDING_DATASET and follows the same format and rules.
@@ -1278,7 +1308,7 @@ typedef enum {
      *    SPINEL_PROP_DATASET_RAW_TLVS
      *
      */
-    SPINEL_PROP_THREAD_MGMT_PENDING_DATASET = SPINEL_PROP_THREAD_EXT__BEGIN + 27,
+    SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET = SPINEL_PROP_THREAD_EXT__BEGIN + 27,
 
     /// Operational Dataset Active Timestamp
     /** Format: `X` - No direct read or write
@@ -1287,8 +1317,10 @@ typedef enum {
      *
      *   SPINEL_PROP_THREAD_ACTIVE_DATASET
      *   SPINEL_PROP_THREAD_PENDING_DATASET
-     *   SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET
-     *   SPINEL_PROP_THREAD_MGMT_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET
      *
      */
     SPINEL_PROP_DATASET_ACTIVE_TIMESTAMP = SPINEL_PROP_THREAD_EXT__BEGIN + 28,
@@ -1299,7 +1331,8 @@ typedef enum {
      * It can only be included in one of the Pending Dataset properties:
      *
      *   SPINEL_PROP_THREAD_PENDING_DATASET
-     *   SPINEL_PROP_THREAD_MGMT_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET
      *
      */
     SPINEL_PROP_DATASET_PENDING_TIMESTAMP = SPINEL_PROP_THREAD_EXT__BEGIN + 29,
@@ -1313,7 +1346,8 @@ typedef enum {
      * It can only be included in one of the Pending Dataset properties:
      *
      *   SPINEL_PROP_THREAD_PENDING_DATASET
-     *   SPINEL_PROP_THREAD_MGMT_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET
      *
      */
     SPINEL_PROP_DATASET_DELAY_TIMER = SPINEL_PROP_THREAD_EXT__BEGIN + 30,
@@ -1325,8 +1359,10 @@ typedef enum {
      *
      *   SPINEL_PROP_THREAD_ACTIVE_DATASET
      *   SPINEL_PROP_THREAD_PENDING_DATASET
-     *   SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET
-     *   SPINEL_PROP_THREAD_MGMT_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET
      *
      * Content is
      *   `S` : Key Rotation Time (in units of hour)
@@ -1342,8 +1378,10 @@ typedef enum {
      *
      * It can only be included in one of the following Dataset properties:
      *
-     *   SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET
-     *   SPINEL_PROP_THREAD_MGMT_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET
      *
      */
     SPINEL_PROP_DATASET_RAW_TLVS = SPINEL_PROP_THREAD_EXT__BEGIN + 32,
@@ -1415,6 +1453,52 @@ typedef enum {
      */
     SPINEL_PROP_THREAD_UDP_PROXY_STREAM = SPINEL_PROP_THREAD_EXT__BEGIN + 36,
 
+    /// Send MGMT_GET Thread Active Operational Dataset
+    /** Format: `A(t(iD))` - Write only
+     *
+     * The formatting of this property follows the same rules as in SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET. This
+     * property further allows the sender to not include a value associated with properties in formating of `t(iD)`,
+     * i.e., it should accept either a `t(iD)` or a `t(i)` encoding (in both cases indicating that the associated
+     * Dataset property should be requested as part of MGMT_GET command).
+     *
+     * This is write-only property. When written, it triggers a MGMT_ACTIVE_GET meshcop command to be sent to leader
+     * requesting the Dataset related properties from the format. The spinel frame response should be a `LAST_STATUS`
+     * with the status of the transmission of MGMT_ACTIVE_GET command.
+     *
+     * In addition to supported properties in SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET, the following property can be
+     * optionally included in the Dataset:
+     *
+     *    SPINEL_PROP_DATASET_DEST_ADDRESS
+     *
+     */
+    SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET = SPINEL_PROP_THREAD_EXT__BEGIN + 37,
+
+    /// Send MGMT_GET Thread Pending Operational Dataset
+    /** Format: `A(t(iD))` - Write only
+     *
+     * The formatting of this property follows the same rules as in SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET.
+     *
+     * This is write-only property. When written, it triggers a MGMT_PENDING_GET meshcop command to be sent to leader
+     * with the given Dataset. The spinel frame response should be a `LAST_STATUS` with the status of the transmission
+     * of MGMT_PENDING_GET command.
+     *
+     */
+    SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET = SPINEL_PROP_THREAD_EXT__BEGIN + 38,
+
+    /// Operational Dataset (MGMT_GET) Destination IPv6 Address
+    /** Format: `6` - No direct read or write
+     *
+     * This property specifies the IPv6 destination when sending MGMT_GET command for either Active or Pending Dataset
+     * if not provided, Leader ALOC address is used as default.
+     *
+     * It can only be included in one of the MGMT_GET Dataset properties:
+     *
+     *   SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET
+     *   SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET
+     *
+     */
+    SPINEL_PROP_DATASET_DEST_ADDRESS = SPINEL_PROP_THREAD_EXT__BEGIN + 39,
+
     SPINEL_PROP_THREAD_EXT__END = 0x1600,
 
     SPINEL_PROP_IPV6__BEGIN    = 0x60,
@@ -1468,6 +1552,9 @@ typedef enum {
 
     SPINEL_PROP_IPV6__END = 0x70,
 
+    SPINEL_PROP_IPV6_EXT__BEGIN = 0x1600,
+    SPINEL_PROP_IPV6_EXT__END   = 0x1700,
+
     SPINEL_PROP_STREAM__BEGIN       = 0x70,
     SPINEL_PROP_STREAM_DEBUG        = SPINEL_PROP_STREAM__BEGIN + 0, ///< [U]
     SPINEL_PROP_STREAM_RAW          = SPINEL_PROP_STREAM__BEGIN + 1, ///< [dD]
@@ -1498,6 +1585,15 @@ typedef enum {
      */
     SPINEL_PROP_STREAM_LOG  = SPINEL_PROP_STREAM__BEGIN + 4,
     SPINEL_PROP_STREAM__END = 0x80,
+
+    SPINEL_PROP_STREAM_EXT__BEGIN = 0x1700,
+    SPINEL_PROP_STREAM_EXT__END   = 0x1800,
+
+    SPINEL_PROP_MESHCOP__BEGIN = 0x80,
+    SPINEL_PROP_MESHCOP__END   = 0x90,
+
+    SPINEL_PROP_MESHCOP_EXT__BEGIN = 0x1800,
+    SPINEL_PROP_MESHCOP_EXT__END   = 0x1900,
 
     SPINEL_PROP_OPENTHREAD__BEGIN = 0x1900,
 
@@ -1633,7 +1729,44 @@ typedef enum {
      */
     SPINEL_PROP_TIME_SYNC_XTAL_THRESHOLD = SPINEL_PROP_OPENTHREAD__BEGIN + 9,
 
+    /// Child Supervision Interval
+    /** Format: `S` - Read-Write
+     *  Units: Seconds
+     *
+     * Required capability: `SPINEL_CAP_CHILD_SUPERVISION`
+     *
+     * The child supervision interval (in seconds). Zero indicates that child supervision is disabled.
+     *
+     * When enabled, Child supervision feature ensures that at least one message is sent to every sleepy child within
+     * the given supervision interval. If there is no other message, a supervision message (a data message with empty
+     * payload) is enqueued and sent to the child.
+     *
+     * This property is available for FTD build only.
+     *
+     */
+    SPINEL_PROP_CHILD_SUPERVISION_INTERVAL = SPINEL_PROP_OPENTHREAD__BEGIN + 10,
+
+    /// Child Supervision Check Timeout
+    /** Format: `S` - Read-Write
+     *  Units: Seconds
+     *
+     * Required capability: `SPINEL_CAP_CHILD_SUPERVISION`
+     *
+     * The child supervision check timeout interval (in seconds). Zero indicates supervision check on the child is
+     * disabled.
+     *
+     * Supervision check is only applicable on a sleepy child. When enabled, if the child does not hear from its parent
+     * within the specified check timeout, it initiates a re-attach process by starting an MLE Child Update
+     * Request/Response exchange with the parent.
+     *
+     * This property is available for FTD and MTD builds.
+     *
+     */
+    SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT = SPINEL_PROP_OPENTHREAD__BEGIN + 11,
+
     SPINEL_PROP_OPENTHREAD__END = 0x2000,
+
+    SPINEL_PROP_INTERFACE__BEGIN = 0x100,
 
     /// UART Bitrate
     /** Format: `L`
@@ -1657,7 +1790,7 @@ typedef enum {
      *  the host, all further frames will be transmitted at the new
      *  bitrate.
      */
-    SPINEL_PROP_UART_BITRATE = 0x100,
+    SPINEL_PROP_UART_BITRATE = SPINEL_PROP_INTERFACE__BEGIN + 0,
 
     /// UART Software Flow Control
     /** Format: `b`
@@ -1670,9 +1803,11 @@ typedef enum {
      *  This property is only implemented when a UART is being
      *  used for Spinel. This property is optional.
      */
-    SPINEL_PROP_UART_XON_XOFF = 0x101,
+    SPINEL_PROP_UART_XON_XOFF = SPINEL_PROP_INTERFACE__BEGIN + 1,
 
-    SPINEL_PROP_15_4_PIB__BEGIN = 1024,
+    SPINEL_PROP_INTERFACE__END = 0x200,
+
+    SPINEL_PROP_15_4_PIB__BEGIN = 0x400,
     // For direct access to the 802.15.4 PID.
     // Individual registers are fetched using
     // `SPINEL_PROP_15_4_PIB__BEGIN+[PIB_IDENTIFIER]`
@@ -1684,9 +1819,9 @@ typedef enum {
     SPINEL_PROP_15_4_PIB_PHY_CHANNELS_SUPPORTED = SPINEL_PROP_15_4_PIB__BEGIN + 0x01, ///< [A(L)]
     SPINEL_PROP_15_4_PIB_MAC_PROMISCUOUS_MODE   = SPINEL_PROP_15_4_PIB__BEGIN + 0x51, ///< [b]
     SPINEL_PROP_15_4_PIB_MAC_SECURITY_ENABLED   = SPINEL_PROP_15_4_PIB__BEGIN + 0x5d, ///< [b]
-    SPINEL_PROP_15_4_PIB__END                   = 1280,
+    SPINEL_PROP_15_4_PIB__END                   = 0x500,
 
-    SPINEL_PROP_CNTR__BEGIN = 1280,
+    SPINEL_PROP_CNTR__BEGIN = 0x500,
 
     /// Counter reset behavior
     /** Format: `C`
@@ -1942,9 +2077,10 @@ typedef enum {
      */
     SPINEL_PROP_CNTR_ALL_MAC_COUNTERS = SPINEL_PROP_CNTR__BEGIN + 401,
 
-    SPINEL_PROP_CNTR__END = 2048,
+    SPINEL_PROP_CNTR__END = 0x800,
 
-    SPINEL_PROP_NEST__BEGIN     = 15296,
+    SPINEL_PROP_NEST__BEGIN = 0x3BC0,
+
     SPINEL_PROP_NEST_STREAM_MFG = SPINEL_PROP_NEST__BEGIN + 0,
 
     /// The legacy network ULA prefix (8 bytes)
@@ -1955,12 +2091,12 @@ typedef enum {
     /** Format: 'E' */
     SPINEL_PROP_NEST_LEGACY_LAST_NODE_JOINED = SPINEL_PROP_NEST__BEGIN + 2,
 
-    SPINEL_PROP_NEST__END = 15360,
+    SPINEL_PROP_NEST__END = 0x3C00,
 
-    SPINEL_PROP_VENDOR__BEGIN = 15360,
-    SPINEL_PROP_VENDOR__END   = 16384,
+    SPINEL_PROP_VENDOR__BEGIN = 0x3C00,
+    SPINEL_PROP_VENDOR__END   = 0x4000,
 
-    SPINEL_PROP_DEBUG__BEGIN = 16384,
+    SPINEL_PROP_DEBUG__BEGIN = 0x4000,
 
     /// Testing platform assert
     /** Format: 'b' (read-only)
@@ -1986,7 +2122,7 @@ typedef enum {
      */
     SPINEL_PROP_DEBUG_TEST_WATCHDOG = SPINEL_PROP_DEBUG__BEGIN + 2,
 
-    SPINEL_PROP_DEBUG__END = 17408,
+    SPINEL_PROP_DEBUG__END = 0x4400,
 
     SPINEL_PROP_EXPERIMENTAL__BEGIN = 2000000,
     SPINEL_PROP_EXPERIMENTAL__END   = 2097152,

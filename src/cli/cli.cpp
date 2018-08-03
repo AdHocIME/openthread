@@ -320,11 +320,9 @@ int Interpreter::Hex2Bin(const char *aHex, uint8_t *aBin, uint16_t aBinLength)
     uint8_t *   cur       = aBin;
     uint8_t     numChars  = hexLength & 1;
     uint8_t     byte      = 0;
+    int         rval;
 
-    if ((hexLength + 1) / 2 > aBinLength)
-    {
-        return -1;
-    }
+    VerifyOrExit((hexLength + 1) / 2 <= aBinLength, rval = -1);
 
     while (aHex < hexEnd)
     {
@@ -342,7 +340,7 @@ int Interpreter::Hex2Bin(const char *aHex, uint8_t *aBin, uint16_t aBinLength)
         }
         else
         {
-            return -1;
+            ExitNow(rval = -1);
         }
 
         aHex++;
@@ -360,7 +358,10 @@ int Interpreter::Hex2Bin(const char *aHex, uint8_t *aBin, uint16_t aBinLength)
         }
     }
 
-    return static_cast<int>(cur - aBin);
+    rval = static_cast<int>(cur - aBin);
+
+exit:
+    return rval;
 }
 
 void Interpreter::AppendResult(otError aError) const
@@ -789,7 +790,6 @@ void Interpreter::ProcessDns(int argc, char *argv[])
 
         strcpy(mResolvingHostname, argv[1]);
 
-        memset(&messageInfo, 0, sizeof(messageInfo));
         messageInfo.mInterfaceId = OT_NETIF_INTERFACE_ID_THREAD;
 
         if (argc > 2)
@@ -816,7 +816,6 @@ void Interpreter::ProcessDns(int argc, char *argv[])
         SuccessOrExit(error = otDnsClientQuery(mInstance, &query, &Interpreter::s_HandleDnsResponse, this));
 
         mResolvingInProgress = true;
-        return;
     }
     else
     {
@@ -824,7 +823,10 @@ void Interpreter::ProcessDns(int argc, char *argv[])
     }
 
 exit:
-    AppendResult(error);
+    if (error != OT_ERROR_NONE)
+    {
+        AppendResult(error);
+    }
 }
 
 void Interpreter::s_HandleDnsResponse(void *        aContext,
@@ -1768,7 +1770,6 @@ void Interpreter::ProcessPing(int argc, char *argv[])
 
     VerifyOrExit(!mPingTimer.IsRunning(), error = OT_ERROR_BUSY);
 
-    memset(&mMessageInfo, 0, sizeof(mMessageInfo));
     SuccessOrExit(error = mMessageInfo.GetPeerAddr().FromString(argv[0]));
     mMessageInfo.mInterfaceId = OT_NETIF_INTERFACE_ID_THREAD;
 
@@ -3597,12 +3598,12 @@ void Interpreter::ProcessNetworkDiagnostic(int argc, char *argv[])
     if (strcmp(argv[0], "get") == 0)
     {
         otThreadSendDiagnosticGet(mInstance, &address, tlvTypes, count);
-        // Intentionally exit here for display response.
-        return;
+        ExitNow();
     }
     else if (strcmp(argv[0], "reset") == 0)
     {
         otThreadSendDiagnosticReset(mInstance, &address, tlvTypes, count);
+        AppendResult(OT_ERROR_NONE);
     }
     else
     {
@@ -3610,7 +3611,10 @@ void Interpreter::ProcessNetworkDiagnostic(int argc, char *argv[])
     }
 
 exit:
-    AppendResult(error);
+    if (error != OT_ERROR_NONE)
+    {
+        AppendResult(error);
+    }
 }
 #endif // OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
 

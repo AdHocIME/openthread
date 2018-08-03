@@ -40,6 +40,9 @@
 #if OPENTHREAD_ENABLE_CHANNEL_MONITOR
 #include <openthread/channel_monitor.h>
 #endif
+#if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+#include <openthread/child_supervision.h>
+#endif
 #include <openthread/diag.h>
 #include <openthread/icmp6.h>
 #if OPENTHREAD_ENABLE_JAM_DETECTION
@@ -881,7 +884,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
 {
     otError error = OT_ERROR_NONE;
 
-    if (aDataset.mIsActiveTimestampSet)
+    if (aDataset.mComponents.mIsActiveTimestampPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_DATASET_ACTIVE_TIMESTAMP));
@@ -889,7 +892,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsPendingTimestampSet)
+    if (aDataset.mComponents.mIsPendingTimestampPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_DATASET_PENDING_TIMESTAMP));
@@ -897,7 +900,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsMasterKeySet)
+    if (aDataset.mComponents.mIsMasterKeyPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_NET_MASTER_KEY));
@@ -905,7 +908,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsNetworkNameSet)
+    if (aDataset.mComponents.mIsNetworkNamePresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_NET_NETWORK_NAME));
@@ -913,7 +916,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsExtendedPanIdSet)
+    if (aDataset.mComponents.mIsExtendedPanIdPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_NET_XPANID));
@@ -921,7 +924,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsMeshLocalPrefixSet)
+    if (aDataset.mComponents.mIsMeshLocalPrefixPresent)
     {
         otIp6Address addr;
 
@@ -935,7 +938,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsDelaySet)
+    if (aDataset.mComponents.mIsDelayPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_DATASET_DELAY_TIMER));
@@ -943,7 +946,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsPanIdSet)
+    if (aDataset.mComponents.mIsPanIdPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_MAC_15_4_PANID));
@@ -951,7 +954,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsChannelSet)
+    if (aDataset.mComponents.mIsChannelPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_PHY_CHAN));
@@ -965,7 +968,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsPSKcSet)
+    if (aDataset.mComponents.mIsPSKcPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_NET_PSKC));
@@ -973,7 +976,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsSecurityPolicySet)
+    if (aDataset.mComponents.mIsSecurityPolicyPresent)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_DATASET_SECURITY_POLICY));
@@ -982,7 +985,7 @@ otError NcpBase::EncodeOperationalDataset(const otOperationalDataset &aDataset)
         SuccessOrExit(mEncoder.CloseStruct());
     }
 
-    if (aDataset.mIsChannelMaskPage0Set)
+    if (aDataset.mComponents.mIsChannelMaskPage0Present)
     {
         SuccessOrExit(mEncoder.OpenStruct());
         SuccessOrExit(mEncoder.WriteUintPacked(SPINEL_PROP_PHY_CHAN_SUPPORTED));
@@ -1558,6 +1561,27 @@ void NcpBase::HandleJamStateChange(bool aJamState)
 }
 
 #endif // OPENTHREAD_ENABLE_JAM_DETECTION
+
+#if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT>(void)
+{
+    return mEncoder.WriteUint16(otChildSupervisionGetCheckTimeout(mInstance));
+}
+
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT>(void)
+{
+    otError  error = OT_ERROR_NONE;
+    uint16_t timeout;
+
+    SuccessOrExit(error = mDecoder.ReadUint16(timeout));
+    otChildSupervisionSetCheckTimeout(mInstance, timeout);
+
+exit:
+    return error;
+}
+
+#endif // OPENTHREAD_ENABLE_CHILD_SUPERVISION
 
 #if OPENTHREAD_ENABLE_CHANNEL_MONITOR
 
@@ -2197,6 +2221,19 @@ exit:
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_CHILD_TIMEOUT>(void)
 {
     return mEncoder.WriteUint32(otThreadGetChildTimeout(mInstance));
+}
+
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_CHILD_TIMEOUT>(void)
+{
+    uint32_t timeout = 0;
+    otError  error   = OT_ERROR_NONE;
+
+    SuccessOrExit(error = mDecoder.ReadUint32(timeout));
+
+    otThreadSetChildTimeout(mInstance, timeout);
+
+exit:
+    return error;
 }
 
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_RLOC16>(void)

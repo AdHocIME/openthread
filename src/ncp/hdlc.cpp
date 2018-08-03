@@ -36,7 +36,7 @@
 
 #include "common/code_utils.hpp"
 
-#if OPENTHREAD_ENABLE_NCP_UART
+#if OPENTHREAD_ENABLE_NCP_UART || OPENTHREAD_POSIX_APP
 
 namespace ot {
 namespace Hdlc {
@@ -98,6 +98,8 @@ uint16_t UpdateFcs(uint16_t aFcs, uint8_t aByte)
 
 bool HdlcByteNeedsEscape(uint8_t aByte)
 {
+    bool rval;
+
     switch (aByte)
     {
     case kFlagXOn:
@@ -105,11 +107,15 @@ bool HdlcByteNeedsEscape(uint8_t aByte)
     case kEscapeSequence:
     case kFlagSequence:
     case kFlagSpecial:
-        return true;
+        rval = true;
+        break;
 
     default:
-        return false;
+        rval = false;
+        break;
     }
+
+    return rval;
 }
 
 Encoder::BufferWriteIterator::BufferWriteIterator(void)
@@ -328,4 +334,4 @@ void Decoder::Decode(const uint8_t *aInBuf, uint16_t aInLength)
 } // namespace Hdlc
 } // namespace ot
 
-#endif // OPENTHREAD_ENABLE_NCP_UART
+#endif // OPENTHREAD_ENABLE_NCP_UART || OPENTHREAD_POSIX_APP

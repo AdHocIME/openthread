@@ -47,7 +47,7 @@ otError otCommissionerStart(otInstance *aInstance)
     Instance &instance = *static_cast<Instance *>(aInstance);
 
 #if OPENTHREAD_ENABLE_BORDER_AGENT
-    SuccessOrExit(error = instance.GetBorderAgent().Stop());
+    SuccessOrExit(error = instance.Get<MeshCoP::BorderAgent>().Stop());
 #endif
     SuccessOrExit(error = instance.GetThreadNetif().GetCommissioner().Start());
 exit:
@@ -65,7 +65,7 @@ otError otCommissionerStop(otInstance *aInstance)
 
     SuccessOrExit(error = instance.GetThreadNetif().GetCommissioner().Stop());
 #if OPENTHREAD_ENABLE_BORDER_AGENT
-    SuccessOrExit(error = instance.GetBorderAgent().Start());
+    SuccessOrExit(error = instance.Get<MeshCoP::BorderAgent>().Start());
 #endif
 exit:
 #endif
@@ -122,6 +122,25 @@ otError otCommissionerSetProvisioningUrl(otInstance *aInstance, const char *aPro
 #endif
 
     return error;
+}
+
+const char *otCommissionerGetProvisioningUrl(otInstance *aInstance, uint16_t *aLength)
+{
+    const char *url = NULL;
+
+#if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
+    Instance &instance = *static_cast<Instance *>(aInstance);
+
+    if (aLength != NULL)
+    {
+        url = instance.GetThreadNetif().GetCommissioner().GetProvisioningUrl(*aLength);
+    }
+#else
+    OT_UNUSED_VARIABLE(aInstance);
+    OT_UNUSED_VARIABLE(aLength);
+#endif
+
+    return url;
 }
 
 otError otCommissionerAnnounceBegin(otInstance *        aInstance,
