@@ -28,7 +28,7 @@
 
 /**
  * @file
- *   This file includes default compile-time configuration constants
+ *   This file includes default compile-time configuration contants
  *   for OpenThread.
  */
 
@@ -131,10 +131,6 @@
  * The maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel access failure.
  *
  * Equivalent to macMaxCSMABackoffs in IEEE 802.15.4-2006, default value is 4.
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 059efa2c04be98a252dbb508292415dcb3b6ae91
  *
  */
 #ifndef OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT
@@ -173,12 +169,6 @@
  * Equivalent to macMaxFrameRetries, default value is 0.
  *
  */
-<<<<<<< HEAD
-=======
-=======
- *
- */
->>>>>>> 059efa2c04be98a252dbb508292415dcb3b6ae91
 #ifndef OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT
 #define OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT 32
 #endif
@@ -215,10 +205,6 @@
  * Equivalent to macMaxFrameRetries, default value is 0.
  *
  */
-<<<<<<< HEAD
-=======
->>>>>>> 1ca81fbb16bbaf943700dc96f732c896edfc39af
->>>>>>> 059efa2c04be98a252dbb508292415dcb3b6ae91
 #ifndef OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT
 #define OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT 0
 #endif
