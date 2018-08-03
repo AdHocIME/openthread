@@ -92,7 +92,7 @@
  *
  */
 #ifndef OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS
-#define OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS 40
+#define OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS 44
 #endif
 
 /**
@@ -131,6 +131,7 @@
  * The maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel access failure.
  *
  * Equivalent to macMaxCSMABackoffs in IEEE 802.15.4-2006, default value is 4.
+<<<<<<< HEAD
  *
  */
 #ifndef OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT
@@ -169,6 +170,46 @@
  * Equivalent to macMaxFrameRetries, default value is 0.
  *
  */
+=======
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT
+#define OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT 32
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_INDIRECT
+ *
+ * The maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel access failure.
+ *
+ * Equivalent to macMaxCSMABackoffs in IEEE 802.15.4-2006, default value is 4.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_INDIRECT
+#define OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_INDIRECT 4
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT
+ *
+ * The maximum number of retries allowed after a transmission failure for direct transmissions.
+ *
+ * Equivalent to macMaxFrameRetries, default value is 3.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT
+#define OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT 3
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT
+ *
+ * The maximum number of retries allowed after a transmission failure for indirect transmissions.
+ *
+ * Equivalent to macMaxFrameRetries, default value is 0.
+ *
+ */
+>>>>>>> 1ca81fbb16bbaf943700dc96f732c896edfc39af
 #ifndef OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT
 #define OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT 0
 #endif
@@ -176,9 +217,15 @@
 /**
  * @def OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_POLLS
  *
- * Maximum number of transmit attempts for an outbound indirect frame (for a sleepy child) each triggered by the
- * reception of a new data request command (a new data poll) from the sleepy child. Each data poll triggered attempt is
- * retried by the MAC layer up to `OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_PER_POLL` times.
+ * Maximum number of received IEEE 802.15.4 Data Requests for a queued indirect transaction.
+ *
+ * The indirect frame remains in the transaction queue until it is successfully transmitted or until the indirect
+ * transmission fails after the maximum number of IEEE 802.15.4 Data Request messages have been received.
+ *
+ * Takes the place of macTransactionPersistenceTime. The time period is specified in units of IEEE 802.15.4 Data
+ * Request receptions, rather than being governed by macBeaconOrder.
+ *
+ * @sa OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT
  *
  */
 #ifndef OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_POLLS
@@ -1747,6 +1794,17 @@
 #else
 #define OPENTHREAD_CONFIG_HEADER_IE_SUPPORT 0
 #endif
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_ENABLE_LONG_ROUTES
+ *
+ * Enable experimental mode for 'deep' networks, allowing packet routes up to 32 nodes.
+ * This mode is incompatible with Thread 1.1.1 and older.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_ENABLE_LONG_ROUTES
+#define OPENTHREAD_CONFIG_ENABLE_LONG_ROUTES 0
 #endif
 
 #endif // OPENTHREAD_CORE_DEFAULT_CONFIG_H_

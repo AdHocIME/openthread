@@ -312,7 +312,8 @@ exit:
 
 uint16_t Dhcp6Server::FindOption(Message &aMessage, uint16_t aOffset, uint16_t aLength, Code aCode)
 {
-    uint16_t end = aOffset + aLength;
+    uint16_t end  = aOffset + aLength;
+    uint16_t rval = 0;
 
     while (aOffset <= end)
     {
@@ -321,14 +322,14 @@ uint16_t Dhcp6Server::FindOption(Message &aMessage, uint16_t aOffset, uint16_t a
 
         if (option.GetCode() == aCode)
         {
-            return aOffset;
+            ExitNow(rval = aOffset);
         }
 
         aOffset += sizeof(option) + option.GetLength();
     }
 
 exit:
-    return 0;
+    return rval;
 }
 otError Dhcp6Server::ProcessClientIdentifier(Message &aMessage, uint16_t aOffset, ClientIdentifier &aClient)
 {
@@ -428,7 +429,6 @@ otError Dhcp6Server::SendReply(otIp6Address &aDst, uint8_t *aTransactionId, Clie
     SuccessOrExit(error = AppendIaAddress(*message, aClient));
     SuccessOrExit(error = AppendRapidCommit(*message));
 
-    memset(&messageInfo, 0, sizeof(messageInfo));
     memcpy(messageInfo.GetPeerAddr().mFields.m8, &aDst, sizeof(otIp6Address));
     messageInfo.mPeerPort = kDhcpClientPort;
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));

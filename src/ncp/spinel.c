@@ -1525,12 +1525,12 @@ const char *spinel_prop_key_to_cstr(spinel_prop_key_t prop_key)
         ret = "PROP_THREAD_PENDING_DATASET";
         break;
 
-    case SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET:
-        ret = "PROP_THREAD_MGMT_ACTIVE_DATASET";
+    case SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET:
+        ret = "PROP_THREAD_MGMT_SET_ACTIVE_DATASET";
         break;
 
-    case SPINEL_PROP_THREAD_MGMT_PENDING_DATASET:
-        ret = "PROP_THREAD_MGMT_PENDING_DATASET";
+    case SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET:
+        ret = "PROP_THREAD_MGMT_SET_PENDING_DATASET";
         break;
 
     case SPINEL_PROP_DATASET_ACTIVE_TIMESTAMP:
@@ -1563,6 +1563,18 @@ const char *spinel_prop_key_to_cstr(spinel_prop_key_t prop_key)
 
     case SPINEL_PROP_THREAD_ADDRESS_CACHE_TABLE:
         ret = "PROP_THREAD_ADDRESS_CACHE_TABLE";
+        break;
+
+    case SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET:
+        ret = "PROP_THREAD_MGMT_GET_ACTIVE_DATASET";
+        break;
+
+    case SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET:
+        ret = "PROP_THREAD_MGMT_GET_PENDING_DATASET";
+        break;
+
+    case SPINEL_PROP_DATASET_DEST_ADDRESS:
+        ret = "PROP_DATASET_DEST_ADDRESS";
         break;
 
     case SPINEL_PROP_IPV6_LL_ADDR:
@@ -1655,6 +1667,14 @@ const char *spinel_prop_key_to_cstr(spinel_prop_key_t prop_key)
 
     case SPINEL_PROP_TIME_SYNC_XTAL_THRESHOLD:
         ret = "PROP_TIME_SYNC_XTAL_THRESHOLD";
+        break;
+
+    case SPINEL_PROP_CHILD_SUPERVISION_INTERVAL:
+        ret = "PROP_CHILD_SUPERVISION_INTERVAL";
+        break;
+
+    case SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT:
+        ret = "PROP_CHILD_SUPERVISION_CHECK_TIMEOUT";
         break;
 
     case SPINEL_PROP_UART_BITRATE:
@@ -2244,6 +2264,10 @@ const char *spinel_capability_to_cstr(unsigned int capability)
 
     case SPINEL_CAP_TIME_SYNC:
         ret = "CAP_TIME_SYNC";
+        break;
+
+    case SPINEL_CAP_CHILD_SUPERVISION:
+        ret = "CAP_CHILD_SUPERVISION";
         break;
 
     case SPINEL_CAP_ERROR_RATE_TRACKING:

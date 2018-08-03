@@ -387,7 +387,6 @@ otError Dhcp6Client::Solicit(uint16_t aRloc16)
     SuccessOrExit(error = AppendIaAddress(*message, aRloc16));
     SuccessOrExit(error = AppendRapidCommit(*message));
 
-    memset(&messageInfo, 0, sizeof(messageInfo));
     memcpy(messageInfo.GetPeerAddr().mFields.m8, netif.GetMle().GetMeshLocalPrefix(), 8);
     messageInfo.GetPeerAddr().mFields.m16[4] = HostSwap16(0x0000);
     messageInfo.GetPeerAddr().mFields.m16[5] = HostSwap16(0x00ff);
@@ -565,7 +564,8 @@ exit:
 
 uint16_t Dhcp6Client::FindOption(Message &aMessage, uint16_t aOffset, uint16_t aLength, Dhcp6::Code aCode)
 {
-    uint16_t end = aOffset + aLength;
+    uint16_t end  = aOffset + aLength;
+    uint16_t rval = 0;
 
     while (aOffset <= end)
     {
@@ -574,14 +574,14 @@ uint16_t Dhcp6Client::FindOption(Message &aMessage, uint16_t aOffset, uint16_t a
 
         if (option.GetCode() == (aCode))
         {
-            return aOffset;
+            ExitNow(rval = aOffset);
         }
 
         aOffset += sizeof(option) + option.GetLength();
     }
 
 exit:
-    return 0;
+    return rval;
 }
 
 otError Dhcp6Client::ProcessServerIdentifier(Message &aMessage, uint16_t aOffset)

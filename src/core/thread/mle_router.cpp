@@ -298,7 +298,7 @@ otError MleRouter::SetStateRouter(uint16_t aRloc16)
     SetAttachState(kAttachStateIdle);
     mAttachCounter = 0;
     mAttachTimer.Stop();
-    mChildUpdateRequestTimer.Stop();
+    mMessageTransmissionTimer.Stop();
     mAdvertiseTimer.Stop();
     ResetAdvertiseInterval();
 
@@ -333,7 +333,7 @@ otError MleRouter::SetStateLeader(uint16_t aRloc16)
     SetAttachState(kAttachStateIdle);
     mAttachCounter = 0;
     mAttachTimer.Stop();
-    mChildUpdateRequestTimer.Stop();
+    mMessageTransmissionTimer.Stop();
     mAdvertiseTimer.Stop();
     ResetAdvertiseInterval();
     AddLeaderAloc();
@@ -373,14 +373,17 @@ bool MleRouter::HandleAdvertiseTimer(TrickleTimer &aTimer)
 
 bool MleRouter::HandleAdvertiseTimer(void)
 {
+    bool continueTrickle = true;
+
     if (!IsFullThreadDevice())
     {
-        return false;
+        ExitNow(continueTrickle = false);
     }
 
     SendAdvertisement();
 
-    return true;
+exit:
+    return continueTrickle;
 }
 
 void MleRouter::StopAdvertiseTimer(void)
@@ -1006,20 +1009,28 @@ exit:
 
 uint8_t MleRouter::LinkQualityToCost(uint8_t aLinkQuality)
 {
+    uint8_t rval;
+
     switch (aLinkQuality)
     {
     case 1:
-        return kLinkQuality1LinkCost;
+        rval = kLinkQuality1LinkCost;
+        break;
 
     case 2:
-        return kLinkQuality2LinkCost;
+        rval = kLinkQuality2LinkCost;
+        break;
 
     case 3:
-        return kLinkQuality3LinkCost;
+        rval = kLinkQuality3LinkCost;
+        break;
 
     default:
-        return kLinkQuality0LinkCost;
+        rval = kLinkQuality0LinkCost;
+        break;
     }
+
+    return rval;
 }
 
 uint8_t MleRouter::GetLinkCost(uint8_t aRouterId)
@@ -2762,6 +2773,8 @@ otError MleRouter::SendChildIdResponse(Child &aChild)
 
     if (aChild.GetRloc16() == 0)
     {
+        uint16_t rloc16;
+
         // pick next Child ID that is not being used
         do
         {
@@ -2771,10 +2784,13 @@ otError MleRouter::SendChildIdResponse(Child &aChild)
             {
                 mNextChildId = kMinChildId;
             }
-        } while (GetChildTable().FindChild(mNextChildId, ChildTable::kInStateAnyExceptInvalid) != NULL);
+
+            rloc16 = netif.GetMac().GetShortAddress() | mNextChildId;
+
+        } while (GetChildTable().FindChild(rloc16, ChildTable::kInStateAnyExceptInvalid) != NULL);
 
         // allocate Child ID
-        aChild.SetRloc16(netif.GetMac().GetShortAddress() | mNextChildId);
+        aChild.SetRloc16(rloc16);
     }
 
     SuccessOrExit(error = AppendAddress16(*message, aChild.GetRloc16()));
@@ -3412,15 +3428,17 @@ void MleRouter::SetRouterId(uint8_t aRouterId)
 
 otError MleRouter::GetChildInfoById(uint16_t aChildId, otChildInfo &aChildInfo)
 {
-    otError error = OT_ERROR_NONE;
-    Child * child;
+    otError  error = OT_ERROR_NONE;
+    Child *  child;
+    uint16_t rloc16;
 
     if ((aChildId & ~kMaxChildId) != 0)
     {
         aChildId = GetChildId(aChildId);
     }
 
-    child = GetChildTable().FindChild(aChildId, ChildTable::kInStateAnyExceptInvalid);
+    rloc16 = GetNetif().GetMac().GetShortAddress() | aChildId;
+    child  = GetChildTable().FindChild(rloc16, ChildTable::kInStateAnyExceptInvalid);
     VerifyOrExit(child != NULL, error = OT_ERROR_NOT_FOUND);
 
     error = GetChildInfo(*child, aChildInfo);
@@ -3486,6 +3504,7 @@ void MleRouter::RestoreChildren(void)
         memset(child, 0, sizeof(*child));
 
         child->SetExtAddress(*static_cast<const Mac::ExtAddress *>(&childInfo.mExtAddress));
+        child->GetLinkInfo().Clear();
         child->SetRloc16(childInfo.mRloc16);
         child->SetTimeout(childInfo.mTimeout);
         child->SetDeviceMode(childInfo.mMode);
@@ -3526,27 +3545,19 @@ exit:
     return error;
 }
 
-otError MleRouter::StoreChild(uint16_t aChildRloc16)
+otError MleRouter::StoreChild(const Child &aChild)
 {
-    otError             error = OT_ERROR_NONE;
-    Child *             child;
     Settings::ChildInfo childInfo;
 
-    child = GetChildTable().FindChild(GetChildId(aChildRloc16), ChildTable::kInStateAnyExceptInvalid);
-    VerifyOrExit(child != NULL, error = OT_ERROR_NOT_FOUND);
-
-    IgnoreReturnValue(RemoveStoredChild(aChildRloc16));
+    IgnoreReturnValue(RemoveStoredChild(aChild.GetRloc16()));
 
     memset(&childInfo, 0, sizeof(childInfo));
-    childInfo.mExtAddress = child->GetExtAddress();
-    childInfo.mTimeout    = child->GetTimeout();
-    childInfo.mRloc16     = child->GetRloc16();
-    childInfo.mMode       = child->GetDeviceMode();
+    childInfo.mExtAddress = aChild.GetExtAddress();
+    childInfo.mTimeout    = aChild.GetTimeout();
+    childInfo.mRloc16     = aChild.GetRloc16();
+    childInfo.mMode       = aChild.GetDeviceMode();
 
-    error = GetInstance().GetSettings().AddChildInfo(childInfo);
-
-exit:
-    return error;
+    return GetInstance().GetSettings().AddChildInfo(childInfo);
 }
 
 otError MleRouter::RefreshStoredChildren(void)
@@ -3557,7 +3568,7 @@ otError MleRouter::RefreshStoredChildren(void)
 
     for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateAnyExceptInvalid); !iter.IsDone(); iter++)
     {
-        SuccessOrExit(error = StoreChild(iter.GetChild()->GetRloc16()));
+        SuccessOrExit(error = StoreChild(*iter.GetChild()));
     }
 
 exit:
@@ -3699,10 +3710,12 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
 {
     ThreadNetif &    netif = GetNetif();
     Ip6::MessageInfo messageInfo;
+    otError          error = OT_ERROR_NONE;
 
     if (mRole == OT_DEVICE_ROLE_CHILD)
     {
-        return Mle::CheckReachability(aMeshSource, aMeshDest, aIp6Header);
+        error = Mle::CheckReachability(aMeshSource, aMeshDest, aIp6Header);
+        ExitNow();
     }
 
     if (aMeshDest == netif.GetMac().GetShortAddress())
@@ -3711,12 +3724,12 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
         if (netif.IsUnicastAddress(aIp6Header.GetDestination()))
         {
             // IPv6 destination is this device
-            return OT_ERROR_NONE;
+            ExitNow();
         }
         else if (GetNeighbor(aIp6Header.GetDestination()) != NULL)
         {
             // IPv6 destination is an RFD child
-            return OT_ERROR_NONE;
+            ExitNow();
         }
     }
     else if (GetRouterId(aMeshDest) == mRouterId)
@@ -3724,13 +3737,13 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
         // mesh destination is a child of this device
         if (GetChildTable().FindChild(aMeshDest, ChildTable::kInStateValidOrRestoring))
         {
-            return OT_ERROR_NONE;
+            ExitNow();
         }
     }
     else if (GetNextHop(aMeshDest) != Mac::kShortAddrInvalid)
     {
         // forwarding to another router and route is known
-        return OT_ERROR_NONE;
+        ExitNow();
     }
 
     messageInfo.GetPeerAddr()                = GetMeshLocal16();
@@ -3740,7 +3753,10 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
     netif.GetIp6().GetIcmp().SendError(Ip6::IcmpHeader::kTypeDstUnreach, Ip6::IcmpHeader::kCodeDstUnreachNoRoute,
                                        messageInfo, aIp6Header);
 
-    return OT_ERROR_DROP;
+    error = OT_ERROR_DROP;
+
+exit:
+    return error;
 }
 
 otError MleRouter::SendAddressSolicit(ThreadStatusTlv::Status aStatus)
@@ -4519,7 +4535,7 @@ void MleRouter::SetChildStateToValid(Child &aChild)
     VerifyOrExit(aChild.GetState() != Neighbor::kStateValid);
 
     aChild.SetState(Neighbor::kStateValid);
-    StoreChild(aChild.GetRloc16());
+    StoreChild(aChild);
     SignalChildUpdated(OT_THREAD_CHILD_TABLE_EVENT_CHILD_ADDED, aChild);
 
 exit:
